@@ -40,7 +40,7 @@ def main(args):
 def transform_ast(code_ast):
     if isinstance(code_ast, ast.AST):
         node = {to_camelcase(k): transform_ast(getattr(code_ast, k)) for k in code_ast._fields}
-        node['node_type'] = to_camelcase(code_ast.__class__.__name__)
+        node['node_type'] = code_ast.__class__.__name__
         return node
     elif isinstance(code_ast, list):
         return [transform_ast(el) for el in code_ast]
@@ -60,21 +60,36 @@ class GraphRenderer:
 
     graphattrs = {
         'labelloc': 't',
-        'fontcolor': 'white',
-        'bgcolor': '#333333',
+        'fontcolor': 'black',
+        'bgcolor': 'white',
         'margin': '0',
+        'fontname': 'Helvetica',
+        'fontsize': '16',
+        'ranksep': '1',
+        'nodesep': '2'
     }
 
     nodeattrs = {
-        'color': 'white',
-        'fontcolor': 'white',
+        'color': 'black',
+        'fontcolor': 'black',
         'style': 'filled',
-        'fillcolor': '#006699',
+        'fillcolor': 'white',
+        'fontname': 'Helvetica',
+        'fontsize': '16',
+        'shape': 'rect',
+        'fixedsize': 'true',
+        'width': str(120/72),
+        'height': str(60/72),
     }
 
     edgeattrs = {
-        'color': 'white',
-        'fontcolor': 'white',
+        'color': 'black',
+        'fontcolor': 'black',
+        'labeldistance': '4',
+        'labelangle': '0',
+        'bgcolor': 'white',
+        'fontname': 'Helvetica',
+        'fontsize': '16'
     }
 
     _graph = None
@@ -84,6 +99,14 @@ class GraphRenderer:
     @staticmethod
     def _escape_dot_label(str):
         return str.replace("\\", "\\\\").replace("|", "\\|").replace("<", "\\<").replace(">", "\\>")
+
+    @staticmethod
+    def _table(str):
+        return '< <table bgcolor="white" border="0"><tr><td>' + str + '</td></tr></table> >'
+
+    @staticmethod
+    def _italic(str):
+        return '<i>' + str + '</i>'
 
 
     def _render_node(self, node):
@@ -100,32 +123,41 @@ class GraphRenderer:
             elif isinstance(node, list):
                 self._render_list(node, node_id)
             else:
-                self._graph.node(node_id, label=self._escape_dot_label(str(node)))
+                # do nothing
+                pass
 
         return node_id
 
 
     def _render_dict(self, node, node_id):
-        self._graph.node(node_id, label=node.get("node_type", "[dict]"))
+        label = node.get("node_type", "[dict]")
         for key, value in node.items():
-            if key == "node_type":
+            if key != 'node_type' and not isinstance(value, (list, dict)):
+                label += '\n' + key + ' = ' + repr(value)
+        self._graph.node(node_id, label=label)
+        for key, value in node.items():
+            if key == "node_type" or not isinstance(value, (list, dict)):
                 continue
             child_node_id = self._render_node(value)
-            self._graph.edge(node_id, child_node_id, label=self._escape_dot_label(key))
+            self._graph.edge(node_id, child_node_id, headlabel=self._table(self._escape_dot_label(key)))
 
 
     def _render_list(self, node, node_id):
-        self._graph.node(node_id, label="[list]")
-        for idx, value in enumerate(node):
-            child_node_id = self._render_node(value)
-            self._graph.edge(node_id, child_node_id, label=self._escape_dot_label(str(idx)))
+        label = self._italic("List")
+        if not node:
+            with self._graph.subgraph(name='cluster_' + str(uuid()), graph_attr={'label': '(Empty)', 'border': '0', 'labelloc': 'b', 'pencolor': 'white'}) as c:
+                c.node(node_id, label='<' + label + '>', shape='circle', width=str(50/72))
+        else:
+            self._graph.node(node_id, label='<' + label + '>', shape='circle', width=str(50/72))
+
+            for idx, value in enumerate(node):
+                child_node_id = self._render_node(value)
+                self._graph.edge(node_id, child_node_id, headlabel=self._table(self._escape_dot_label(str(idx))))
 
 
     def render(self, data, *, label=None):
         # create the graph
         graphattrs = self.graphattrs.copy()
-        if label is not None:
-            graphattrs['label'] = self._escape_dot_label(label)
         graph = gv.Digraph(graph_attr = graphattrs, node_attr = self.nodeattrs, edge_attr = self.edgeattrs)
 
         # recursively draw all the nodes and edges
@@ -136,9 +168,8 @@ class GraphRenderer:
         self._rendered_nodes = None
 
         # display the graph
-        graph.format = "pdf"
+        graph.format = "svg"
         graph.view()
-        subprocess.Popen(['xdg-open', "test.pdf"])
 
 if __name__ == '__main__':
     main(sys.argv)
