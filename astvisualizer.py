@@ -167,9 +167,10 @@ class GraphRenderer:
         self._graph = None
         self._rendered_nodes = None
 
-        # display the graph
-        graph.format = "svg"
-        graph.view()
+        # render the graph to SVG
+        result = graph.pipe(format='svg').decode('utf-8')
+        print(result)
+
 
 if __name__ == '__main__':
     main(sys.argv)
