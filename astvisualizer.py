@@ -77,7 +77,7 @@ class GraphRenderer:
         'fontname': 'Helvetica',
         'fontsize': '16',
         'shape': 'rect',
-        'fixedsize': 'true',
+        'fixedsize': 'false',
         'width': str(120/72),
         'height': str(60/72),
     }
