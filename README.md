@@ -21,7 +21,7 @@ If you want to visualize an existing Python source code file, pass the file name
 
 ## Development
 
-Resources I (@jmanuel1) found useful while working on this code:
+Resources I (https://github.com/jmanuel1) found useful while working on this code:
 - http://www.graphviz.org/doc/info/attrs.html
 - http://graphs.grevian.org/example#example-6
 - https://stackoverflow.com/questions/2012036/graphviz-how-to-connect-subgraphs
